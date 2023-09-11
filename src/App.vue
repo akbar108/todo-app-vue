@@ -4,6 +4,9 @@ complete task disabled edit
 list task cuma ada title sama tanggal (cek toDate untuk sorting, berdasarkan tanggal yg paling muda paling atas)
 -->
 
+<!--  sort task, that sort all of the list in task list by date,
+  always put recently add task on top and put all of the task that pass the toDate in the bottom -->
+
 <script lang="ts">
 import { useTodoStore } from "./stores/todo";
 import {
@@ -19,7 +22,6 @@ import "@vuepic/vue-datepicker/dist/main.css";
 import draggable from "vuedraggable";
 import moment from "moment";
 
-// ganti ui jadi ke kiri dan ketika addTodo di trigger tambahin todo task ke samping dan seterusnya dalama card terpisah
 export default {
   components: {
     BIconCheckAll,
@@ -39,31 +41,27 @@ export default {
       toDate: "" as string,
       displayedTodos: [] as any[],
       displayedCompletedTask: [] as any[],
-      displayedOnGoingTask: [] as any[],
-      createdAt: Date,
+      displayedAllTask: [] as any[],
+      createdAt: "",
       editingIndex: null,
       isTest: false as boolean,
+      dummy: [{ num: 1 }, { num: 7 }, { num: 2 }, { num: 10 }] as any[],
     };
   },
   methods: {
     addTodo() {
-      // jika input value kosong maka jangan return apapun
       if (this.newTodo.trim() == "" || this.newTodo == null) {
         return;
       }
-      // jika fromdate & toDate value ada maka lanjutkan kondisi
       if (this.fromDate && this.toDate) {
-        // inisiasi variable yg tadinya string ke date agar bisa dibandingkan
         const updateFrom = new Date(this.fromDate);
         const updateTo = new Date(this.toDate);
 
-        // jika updateTo tanggal atau hari atau jamnya kurang dari updateFrom hentikan kondisi
         if (updateTo <= updateFrom) {
           alert("invalid");
           return;
         }
-        //method some nge filter data yg ada di dalam array, yg me return boolean
-        const conditionSameDate = this.todoStore.todos.some((item) => {
+        const conditionSameDate = this.todoStore.todos.some((item: any) => {
           const from = new Date(item.fromDate);
           const to = new Date(item.toDate);
           return (
@@ -71,7 +69,6 @@ export default {
             (updateTo > from && updateTo <= to)
           );
         });
-        // jika conditionSamedate me return true maka jalankan kondisi ini
         if (conditionSameDate) {
           alert("uda diisi bro");
           return;
@@ -89,42 +86,17 @@ export default {
       );
 
       this.newTodo = "";
+
+      this.displayedTodos = this.todoStore.todos;
+      this.displayedAllTask = this.displayedTodos;
+
+      this.sortedTodos;
     },
 
-    // sortin task dari yg paling baru
-    sortTasks() {
-      this.todoStore.todos.sort((a, b) => {
-        if (a.todo > b.todo) {
-          return -1;
-        } else if (a.todo < b.todo) {
-          return 1;
-        } else {
-          return 0;
-        }
-      });
-    },
-
-    // jika array.status yg di filter hasilnya true
-    filterCompleted() {
-      this.displayedCompletedTask = this.todoStore.todos.filter(
-        (x) => x.status == true
-      );
-
-      // data ini untuk mendisplay todo yg status nya komplit untuk di print ke dalam container complete task
-    },
-    // jika array.status yg di filter hasilnya false
-
-    // filterOngoing() {
-    //   this.displayedOnGoingTask = this.todoStore.todos.filter(
-    //     (x) => x.status == false
-    //   );
-    // },
-    // tampilkan semua array
     filterAll() {
       this.displayedTodos = this.todoStore.todos;
     },
 
-    // display semua task
     newValue() {
       return (this.displayedTodos = this.todoStore.todos);
     },
@@ -132,42 +104,84 @@ export default {
     // remove index
     removeTodo(i: number) {
       this.todoStore.removeTodo(i);
-      this.sortTasks();
+      // this.sortTasks();
 
       this.displayedTodos = this.todoStore.todos;
     },
     editedDate() {},
 
     formatDate(stringDate: string) {
+      // this.createdAt.toString();
+      // let tot = moment(this.createdAt).format("MM/DD/YYYY HH:mm");
+      // console.log(tot);
+      let created = new Date();
+      created.toString();
+      this.createdAt = moment(created).format("MM/DD/YYYY HH:mm");
+
       return moment(stringDate).format("MM/DD/YYYY HH:mm");
     },
 
     isEditing(index: any) {
       this.editingIndex = index;
     },
-    taskComplete(index: number) {
-      this.checked = !this.checked;
-      this.displayedCompletedTask = this.displayedTodos.filter(
-        (x) => x.status == true
-      );
+    dummyTest() {
+      // const dummy  = [{ num: 1 }, { num: 7 }, { num: 2 }, { num: 10 }]
+      this.dummy.sort((a, b) => {
+        // console.log(a.num);
+        // console.log(b.num);
+        return a.num - b.num;
 
-      console.log(this.checked);
-      console.log(this.displayedTodos);
-      console.log(this.displayedTodos[index]);
+        // const exVar = 5;
+        // if (a.num < exVar && b.num >= exVar) {
+        //   return 1;
+        // } else if (a.num >= exVar && b.num < exVar) {
+        //   return -1;
+        // } else {
+        //   return b.num - a.num;
+        // }
+      });
+      // console.log(this.dummy);
+    },
+    sortedTodos() {
+      this.displayedTodos.sort((a, b) => {
+        const aDate = new Date(a.toDate);
+        const bDate = new Date(b.toDate);
+        const now = new Date();
 
-      this.displayedCompletedTask.push({
-        todo: this.displayedTodos[index].todo,
-        fromDate: this.displayedTodos[index].fromDate,
-        toDate: this.displayedTodos[index].toDate,
-        status: this.checked,
+        console.log(now);
+
+        // JS SORT FLOW
+        // 1. < 0 ..... a comes first
+        // 2. 0 ...... nothing happend
+        // 3. > 0 b comes first
+
+        // task yang due date uda lewat urut di paling bawah
+        // jika toDate task kurang dari now dan toDate task yg lain lebih dari atau sama dengan now maka return 1
+        // yang artinya b diurutkan pertama
+        if (aDate < now && bDate >= now) {
+          // console.log("1");
+
+          return 1;
+          // jika toDate task lebih dari sama dengan now dan todate task lain kurang dari now maka return -1
+          // yang artinya a diurutkan pertama
+        } else if (aDate >= now && bDate < now) {
+          // console.log("-1");
+          return -1;
+        } else {
+          return bDate.getTime() - aDate.getTime();
+        }
       });
     },
   },
   mounted() {
-    // nge declare todoStore ke dalam displayedTodos agar setiap browser reload todo task selalu ke display
-    this.displayedTodos = this.todoStore.todos;
+    // this.displayedTodos = this.sortedTodos;
     this.newValue();
-    console.log(this.todoStore.todos);
+    this.displayedCompletedTask = this.displayedTodos;
+
+    this.displayedAllTask = this.displayedTodos;
+    this.dummyTest();
+
+    // console.log(this.createdAt);
   },
 };
 </script>
@@ -205,8 +219,8 @@ export default {
     </div>
   </div>
   <div class="container">
-    <div class="row">
-      <div class="all col-3 p-0">
+    <div class="row d-flex">
+      <div class="all col-3">
         <div class="d-flex justify-content-center border border-1 w-100">
           <h3>todo list</h3>
         </div>
@@ -216,12 +230,7 @@ export default {
               <div
                 class="border-bottom d-flex justify-content-between align-items-center bg-dark p-2"
               >
-                <!-- <input
-                  type="checkbox"
-                  v-model="checked"
-                  class="me-2"
-                  @click="taskComplete(index)"
-                /> -->
+                <input type="checkbox" v-model="element.status" class="me-2" />
 
                 <div v-if="editingIndex === index">
                   <form>
@@ -235,22 +244,10 @@ export default {
                 <div v-else>
                   <p>{{ element.todo }}</p>
                 </div>
-                <p
-                  :class="{
-                    'd-block rounded-pill bg-success p-1': element.status,
-                    'd-none': !element.status,
-                  }"
-                  class="complete-text"
-                >
-                  completed
-                </p>
+
                 <div>
                   <BIconPencilFill
-                    class="m-2 text-white"
-                    :class="{
-                      'opacity-25': editingIndex == index,
-                      'opacitiy-100 cursor-pointer': editingIndex != index,
-                    }"
+                    class="m-2 text-white opacity-0"
                     @click="isEditing(index)"
                   />
                 </div>
@@ -271,283 +268,35 @@ export default {
           </template>
         </draggable>
       </div>
-      <div class="all col-3 p-0">
+      <div class="all col-3">
         <div class="d-flex justify-content-center border border-1 w-100">
           <h3>on going task</h3>
         </div>
-        <draggable
-          v-model="displayedOnGoingTask"
-          item-key="id"
-          group="task-list"
-        >
+        <draggable v-model="displayedTodos" item-key="id" group="task-list">
           <template #item="{ element, index }">
-            <div class="card col-12 my-2">
-              <div
-                class="border-bottom d-flex justify-content-between align-items-center bg-dark p-2"
-              >
-                <!-- <input
-                  type="checkbox"
-                  v-model="element.status"
-                  disabled
-                  class="me-2 opacity-0"
-                /> -->
-                <input
-                  type="checkbox"
-                  v-model="checked"
-                  class="me-2"
-                  @click="taskComplete(index)"
-                />
-                <div>
-                  <form>
+            <div class="">
+              <div class="" v-if="element.status == false">
+                <div class="card col-12 my-2">
+                  <div
+                    class="border-bottom d-flex justify-content-between align-items-center bg-dark p-2"
+                  >
                     <input
-                      type="text"
-                      class="m-0 border-0 fs-5 ps-2 w-100 rounded-pill"
-                      v-model="element.todo"
+                      type="checkbox"
+                      v-model="element.status"
+                      disabled
+                      class="me-2 opacity-0"
                     />
-                  </form>
-                </div>
 
-                <p
-                  :class="{
-                    'd-block rounded-pill bg-success p-1': element.status,
-                    'd-none': !element.status,
-                  }"
-                  class="complete-text"
-                >
-                  completed
-                </p>
-                <div>
-                  <BIconPencilFill
-                    class="m-2 text-white"
-                    :class="{
-                      'opacity-25': editingIndex == index,
-                      'opacitiy-100 cursor-pointer': editingIndex != index,
-                    }"
-                    @click="isEditing(index)"
-                  />
-                </div>
-              </div>
-              <div class="card-body">
-                <div class="" @click="editedDate">
-                  <p>from: {{ formatDate(element.fromDate) }}</p>
-                  <p>to: {{ formatDate(element.toDate) }}</p>
-                </div>
-              </div>
-              <button
-                @click="removeTodo(index)"
-                class="border-0 rounded-circle p-2 bg-transparent"
-              >
-                <BIconTrash class="fs-3 text-danger" />
-              </button>
-            </div>
-          </template>
-        </draggable>
-      </div>
+                    <div>
+                      <form>
+                        <input
+                          type="text"
+                          class="m-0 border-0 fs-5 ps-2 w-100 rounded-pill"
+                          v-model="element.todo"
+                        />
+                      </form>
+                    </div>
 
-      <div class="complete col-3 p-0">
-        <div class="d-flex justify-content-center border border-1 w-100">
-          <h3>complete task</h3>
-        </div>
-        <draggable
-          v-model="displayedCompletedTask"
-          item-key="id"
-          group="task-list"
-        >
-          <template #item="{ element, index }">
-            <div class="card col-12 my-2">
-              <div
-                class="border-bottom d-flex justify-content-between align-items-center bg-dark p-2"
-              >
-                <input
-                  type="checkbox"
-                  v-model="element.status"
-                  disabled
-                  class="me-2 opacity-0"
-                />
-
-                <div v-if="editingIndex === index">
-                  <form>
-                    <input
-                      type="text"
-                      class="m-0 border-0 fs-5 ps-2 w-100 rounded-pill"
-                      v-model="element.todo"
-                    />
-                  </form>
-                </div>
-                <div v-else>
-                  <p>{{ element.todo }}</p>
-                </div>
-                <p
-                  :class="{
-                    'd-block rounded-pill bg-success p-1': element.status,
-                    'd-none': !element.status,
-                  }"
-                  class="complete-text"
-                >
-                  completed
-                </p>
-                <div>
-                  <BIconPencilFill
-                    class="m-2 text-white"
-                    :class="{
-                      'opacity-25': editingIndex == index,
-                      'opacitiy-100 cursor-pointer': editingIndex != index,
-                    }"
-                    @click="isEditing(index)"
-                  />
-                </div>
-              </div>
-              <div class="card-body">
-                <div class="" @click="editedDate">
-                  <p>from: {{ formatDate(element.fromDate) }}</p>
-                  <p>to: {{ formatDate(element.toDate) }}</p>
-                </div>
-              </div>
-              <button
-                @click="removeTodo(index)"
-                class="border-0 rounded-circle p-2 bg-transparent"
-              >
-                <BIconTrash class="fs-3 text-danger" />
-              </button>
-            </div>
-          </template>
-        </draggable>
-      </div>
-      <div class="task-list col-3 p-0">
-        <div class="d-flex justify-content-center border border-1 w-100">
-          <!-- tampilin semua task tanpa button delete & complete -->
-          <h3>list task</h3>
-        </div>
-        <!-- <draggable v-model="displayedTodos" item-key="id">
-          <template #item="{ element, index }">
-            <div class="card col-12 my-2">
-              <div
-                class="border-bottom d-flex justify-content-between align-items-center bg-dark p-2"
-              >
-                <input
-                  type="checkbox"
-                  v-model="element.status"
-                  disabled
-                  class="me-2 opacity-0"
-                />
-
-                <div v-if="editingIndex === index">
-                  <form>
-                    <input
-                      type="text"
-                      class="m-0 border-0 fs-5 ps-2 w-100 rounded-pill"
-                      v-model="element.todo"
-                    />
-                  </form>
-                </div>
-                <div v-else>
-                  <p>{{ element.todo }}</p>
-                </div>
-                <p
-                  disabled
-                  :class="{
-                    'd-block rounded-pill bg-success p-1': element.status,
-                    'd-none': !element.status,
-                  }"
-                  class="complete-text opacity-0"
-                >
-                  completed
-                </p>
-                <div class="opacity-0" disabled>
-                  <BIconPencilFill
-                    class="m-2 text-white"
-                    :class="{
-                      'opacity-25': editingIndex == index,
-                      'opacitiy-100 cursor-pointer': editingIndex != index,
-                    }"
-                    @click="isEditing(index)"
-                  />
-                </div>
-              </div>
-              <div class="card-body">
-                <div class="" @click="editedDate">
-                  <p>from: {{ formatDate(element.fromDate) }}</p>
-                  <p>to: {{ formatDate(element.toDate) }}</p>
-                </div>
-              </div>
-              <button
-                @click="removeTodo(index)"
-                disabled
-                class="border-0 rounded-circle p-2 bg-transparent opacity-0"
-              >
-                <BIconTrash class="fs-3 text-danger" />
-              </button>
-            </div>
-          </template>
-        </draggable> -->
-      </div>
-    </div>
-  </div>
-  <!-- <div class="card py-2 px-3 rounded border-2 border-black">
-    <h3>TODO APP</h3>
-    <div class="my-3 d-flex flex-column">
-      <input
-        v-model="newTodo"
-        placeholder="Add a new todo"
-        class="rounded-pill p-2 border-1"
-      />
-      <div class="d-flex">
-        <div class="w-100">
-          <P class="mt-2">from: </P>
-          <VueDatePicker v-model="fromDate" />
-        </div>
-        <div class="w-100">
-          <P class="mt-2">to:</P>
-          <VueDatePicker v-model="toDate" />
-        </div>
-      </div>
-
-      <div class="d-flex w-100 justify-content-between">
-        <button
-          class="rounded-pill me-2 w-100 bg-transparent border-1"
-          @click="filterCompleted"
-        >
-          completed task
-        </button>
-        <button
-          class="rounded-pill ms-2 w-100 bg-transparent border-1"
-          @click="filterOngoing"
-        >
-          on going task
-        </button>
-      </div>
-      <button
-        class="rounded-pill w-100 bg-transparent border-1"
-        @click="filterAll"
-      >
-        all
-      </button>
-    </div>
-    <ul class="card-content overflow-auto list-unstyle ps-0">
-      <draggable v-model="displayedTodos" item-key="id">
-        <template #item="{ element, index }">
-          <li class="mt-3">
-            <div v-for="(task, index) in displayedCompletedTask" :key="index">
-              {{ task.todo }}
-              {{ task.fromDate }}
-              {{ task.toDate }}
-            </div>
-            <div
-              class="test d-flex justify-content-between align-items-center border p-2 rounded-pill"
-            >
-              <div class="d-flex align-items-center position-relative">
-                <input type="checkbox" v-model="element.status" class="me-2" />
-
-                <span class="checkmark"></span>
-                <div class="">
-                  <div class="d-flex align-items-center">
-                    <form action="">
-                      <input
-                        type="text"
-                        class="m-0 border-0 fs-4 ps-2"
-                        v-model="element.todo"
-                      />
-                    </form>
                     <p
                       :class="{
                         'd-block rounded-pill bg-success p-1': element.status,
@@ -557,34 +306,169 @@ export default {
                     >
                       completed
                     </p>
+
+                    <BIconPencilFill
+                      class="m-2 text-white"
+                      @click="isEditing(index)"
+                    />
                   </div>
-                  <div class="d-flex" @click="editedDate">
-                    <VueDatePicker v-model="element.fromDate" />
-                    <VueDatePicker v-model="element.toDate" />
+                  <div class="card-body">
+                    <div class="" @click="editedDate">
+                      <p>from: {{ formatDate(element.fromDate) }}</p>
+                      <p>to: {{ formatDate(element.toDate) }}</p>
+                    </div>
                   </div>
+                  <button
+                    @click="removeTodo(index)"
+                    class="border-0 rounded-circle p-2 bg-transparent opacity-0"
+                    disabled
+                  >
+                    <BIconTrash class="fs-3 text-danger" />
+                  </button>
                 </div>
               </div>
-
-              <button
-                @click="removeTodo(index)"
-                class="border-0 rounded-circle p-2 bg-transparent"
-              >
-                <BIconTrash class="fs-3 text-danger" />
-              </button>
             </div>
-          </li>
-        </template>
-      </draggable>
-    </ul>
-    <div class="footer">
-      <button
-        @click="addTodo()"
-        class="rounded-pill w-100 py-2 bg-transparent border-1"
-      >
-        Add Todo
-      </button>
+          </template>
+        </draggable>
+      </div>
+
+      <div class="complete col-3">
+        <div class="d-flex justify-content-center border border-1 w-100">
+          <h3>complete task</h3>
+        </div>
+        <draggable
+          v-model="displayedCompletedTask"
+          item-key="id"
+          group="task-list"
+        >
+          <template #item="{ element, index }">
+            <div class="">
+              <div v-if="element.status">
+                <div class="card col-12 my-2">
+                  <div
+                    class="border-bottom d-flex justify-content-between align-items-center bg-dark p-2"
+                  >
+                    <input
+                      type="checkbox"
+                      v-model="element.status"
+                      disabled
+                      class="me-2 opacity-0"
+                    />
+
+                    <div v-if="editingIndex === index">
+                      <form>
+                        <input
+                          type="text"
+                          class="m-0 border-0 fs-5 ps-2 w-100 rounded-pill"
+                          v-model="element.todo"
+                        />
+                      </form>
+                    </div>
+                    <div v-else>
+                      <p>{{ element.todo }}</p>
+                    </div>
+                    <p
+                      :class="{
+                        'd-block rounded-pill bg-success p-1': element.status,
+                        'd-none': !element.status,
+                      }"
+                      class="complete-text"
+                    >
+                      completed
+                    </p>
+                    <div>
+                      <BIconPencilFill
+                        class="m-2 text-white opacity-0"
+                        disabled
+                        :class="{
+                          'opacity-25': editingIndex == index,
+                          'opacitiy-100 cursor-pointer': editingIndex != index,
+                        }"
+                        @click="isEditing(index)"
+                      />
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="" @click="editedDate">
+                      <p>from: {{ formatDate(element.fromDate) }}</p>
+                      <p>to: {{ formatDate(element.toDate) }}</p>
+                    </div>
+                  </div>
+                  <button
+                    @click="removeTodo(index)"
+                    class="border-0 rounded-circle p-2 bg-transparent opacity-0"
+                    disabled
+                  >
+                    <BIconTrash class="fs-3 text-danger" />
+                  </button>
+                </div>
+              </div>
+              <div v-else></div>
+            </div>
+          </template>
+        </draggable>
+      </div>
+      <div class="task-list col-3">
+        <div class="d-flex justify-content-center border border-1 w-100">
+          <!-- tampilin semua task tanpa button delete & complete -->
+          <h3>list task</h3>
+        </div>
+        <div class="" v-for="(element, index) in displayedAllTask">
+          <div
+            class="card col-12 my-2"
+            :class="{
+              'bg-danger text-white': formatDate(element.toDate) < createdAt,
+            }"
+          >
+            <div
+              class="border-bottom d-flex justify-content-between align-items-center bg-dark p-2"
+            >
+              <input
+                type="checkbox"
+                v-model="element.status"
+                class="me-2 opacity-0"
+                disabled
+              />
+
+              <div v-if="editingIndex === index">
+                <form>
+                  <input
+                    type="text"
+                    class="m-0 border-0 fs-5 ps-2 w-100 rounded-pill"
+                    v-model="element.todo"
+                  />
+                </form>
+              </div>
+              <div v-else>
+                <p>{{ element.todo }}</p>
+              </div>
+
+              <div>
+                <BIconPencilFill
+                  class="m-2 text-white opacity-0"
+                  disabled
+                  @click="isEditing(index)"
+                />
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="" @click="editedDate">
+                <p>from: {{ formatDate(element.fromDate) }}</p>
+                <p>to: {{ formatDate(element.toDate) }}</p>
+              </div>
+            </div>
+            <button
+              @click="removeTodo(index)"
+              class="border-0 rounded-circle p-2 bg-transparent opacity-0"
+              dissabled
+            >
+              <BIconTrash class="fs-3 text-danger" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div> -->
+  </div>
 </template>
 
 <style lang="scss">
